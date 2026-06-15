@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Profession } from '@portfolio/shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,7 +9,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { toast } from 'sonner';
 import {
   api,
-  uploadToCloudinary,
+  uploadToCloudinaryWithProgress,
   type ExperienceInput,
   type GenOutput,
 } from '@/lib/api';
@@ -24,6 +23,15 @@ const PROFESSION_LABELS: Record<string, string> = {
   other: 'Other',
 };
 
+const PROFESSIONS = [
+  'actress',
+  'actor',
+  'model',
+  'influencer',
+  'content_creator',
+  'other',
+] as const;
+
 const STEPS = ['Basics', 'Reach & work', 'Photos'] as const;
 
 // Accepted image formats and size limit for portfolio photos.
@@ -33,12 +41,13 @@ const MAX_MB = 10;
 const ACCEPT_ATTR = 'image/jpeg,image/png,image/webp';
 
 type Photo = { id: string; url: string; cloudinaryPublicId: string; isCover: boolean };
+type PendingUpload = { tempId: string; name: string; progress: number; error?: string };
 
 export default function CreateWizard() {
   const [portfolioId, setPortfolioId] = useState<string | null>(null);
   const [step, setStep] = useState(0);
   const [busy, setBusy] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [pending, setPending] = useState<PendingUpload[]>([]);
   const [result, setResult] = useState<GenOutput | null>(null);
 
   // form state
@@ -81,24 +90,36 @@ export default function CreateWizard() {
 
   async function handleFiles(files: FileList | null) {
     if (!files || !portfolioId) return;
-    setUploading(true);
-    try {
-      for (const file of Array.from(files)) {
-        if (!ACCEPTED_TYPES.includes(file.type)) {
-          toast.error(`${file.name}: unsupported format — use ${ACCEPTED_LABEL}`);
-          continue;
-        }
-        if (file.size > MAX_MB * 1024 * 1024) {
-          toast.error(`${file.name}: too large (max ${MAX_MB}MB)`);
-          continue;
-        }
-        const meta = await uploadToCloudinary(file);
+    // first photo in this batch becomes the cover only if none exist yet
+    let coverTaken = photos.length > 0;
+    for (const file of Array.from(files)) {
+      if (!ACCEPTED_TYPES.includes(file.type)) {
+        toast.error(`${file.name}: unsupported format — use ${ACCEPTED_LABEL}`);
+        continue;
+      }
+      if (file.size > MAX_MB * 1024 * 1024) {
+        toast.error(`${file.name}: too large (max ${MAX_MB}MB)`);
+        continue;
+      }
+      const tempId =
+        typeof crypto !== 'undefined' && 'randomUUID' in crypto
+          ? crypto.randomUUID()
+          : `${file.name}-${file.size}-${Date.now()}`;
+      const makeCover = !coverTaken;
+      coverTaken = true;
+      setPending((p) => [...p, { tempId, name: file.name, progress: 0 }]);
+      try {
+        const meta = await uploadToCloudinaryWithProgress(file, (pct) =>
+          setPending((p) =>
+            p.map((u) => (u.tempId === tempId ? { ...u, progress: pct } : u)),
+          ),
+        );
         const created = await api.registerPhoto(portfolioId, {
           ...meta,
-          isCover: photos.length === 0,
+          isCover: makeCover,
         });
-        setPhotos((p) => [
-          ...p,
+        setPhotos((ph) => [
+          ...ph,
           {
             id: created.id,
             url: meta.url,
@@ -106,13 +127,20 @@ export default function CreateWizard() {
             isCover: created.isCover,
           },
         ]);
+        setPending((p) => p.filter((u) => u.tempId !== tempId));
+      } catch (e) {
+        const msg = (e as Error).message;
+        // keep the failed item visible with its error so the user knows WHY
+        setPending((p) =>
+          p.map((u) => (u.tempId === tempId ? { ...u, error: msg } : u)),
+        );
+        toast.error(`${file.name}: ${msg}`);
       }
-      toast.success('Photo(s) uploaded');
-    } catch (e) {
-      toast.error(`Upload failed: ${(e as Error).message}`);
-    } finally {
-      setUploading(false);
     }
+  }
+
+  function dismissPending(tempId: string) {
+    setPending((p) => p.filter((u) => u.tempId !== tempId));
   }
 
   /** Pick which photo is the cover (only one cover at a time). */
@@ -235,7 +263,7 @@ export default function CreateWizard() {
                 <div className={field}>
                   <Label>Profession *</Label>
                   <select className={selectCls} value={profession} onChange={(e) => setProfession(e.target.value)}>
-                    {Profession.options.map((p) => (
+                    {PROFESSIONS.map((p) => (
                       <option key={p} value={p}>
                         {PROFESSION_LABELS[p]}
                       </option>
@@ -342,12 +370,51 @@ export default function CreateWizard() {
                 accept={ACCEPT_ATTR}
                 multiple
                 onChange={(e) => handleFiles(e.target.files)}
-                disabled={uploading}
+                disabled={pending.some((u) => !u.error)}
               />
               <p className="text-xs text-neutral-500">
                 {ACCEPTED_LABEL} · up to {MAX_MB}MB each. Add 3–6 photos for the best look.
               </p>
-              {uploading && <p className="text-sm text-neutral-500">Uploading…</p>}
+
+              {/* In-progress / failed uploads */}
+              {pending.length > 0 && (
+                <div className="flex flex-wrap gap-3">
+                  {pending.map((u) => (
+                    <div
+                      key={u.tempId}
+                      title={u.error ?? u.name}
+                      className={`relative flex h-24 w-24 flex-col items-center justify-center rounded border p-1.5 text-center text-[10px] ${
+                        u.error ? 'border-red-300 bg-red-50' : 'border-neutral-200 bg-neutral-50'
+                      }`}
+                    >
+                      {u.error ? (
+                        <>
+                          <span className="font-medium text-red-600">Upload failed</span>
+                          <span className="mt-0.5 line-clamp-3 text-red-500">{u.error}</span>
+                          <button
+                            type="button"
+                            onClick={() => dismissPending(u.tempId)}
+                            className="mt-1 underline"
+                          >
+                            dismiss
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <span className="mb-1 w-full truncate text-neutral-500">{u.name}</span>
+                          <div className="h-1 w-full bg-neutral-200">
+                            <div
+                              className="h-1 bg-black transition-all"
+                              style={{ width: `${u.progress}%` }}
+                            />
+                          </div>
+                          <span className="mt-1 text-neutral-500">{u.progress}%</span>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
               {photos.length > 0 && (
                 <>
                   <p className="text-xs text-neutral-500">
