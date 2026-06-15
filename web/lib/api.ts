@@ -112,3 +112,63 @@ export async function uploadToCloudinary(file: File) {
     height: d.height,
   };
 }
+
+export interface UploadedPhoto {
+  cloudinaryPublicId: string;
+  url: string;
+  width: number;
+  height: number;
+}
+
+/**
+ * Same signed upload, but via XMLHttpRequest so we get real upload progress
+ * (fetch() can't report upload progress). `onProgress` receives 0–100.
+ */
+export async function uploadToCloudinaryWithProgress(
+  file: File,
+  onProgress: (percent: number) => void,
+): Promise<UploadedPhoto> {
+  const sig = await api.uploadSignature();
+  const form = new FormData();
+  form.append('file', file);
+  form.append('api_key', sig.apiKey);
+  form.append('timestamp', String(sig.timestamp));
+  form.append('folder', sig.folder);
+  form.append('signature', sig.signature);
+
+  return new Promise<UploadedPhoto>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `https://api.cloudinary.com/v1_1/${sig.cloudName}/image/upload`);
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        const d = JSON.parse(xhr.responseText) as {
+          public_id: string;
+          secure_url: string;
+          width: number;
+          height: number;
+        };
+        resolve({
+          cloudinaryPublicId: d.public_id,
+          url: d.secure_url,
+          width: d.width,
+          height: d.height,
+        });
+      } else {
+        let detail = xhr.statusText;
+        try {
+          detail =
+            (JSON.parse(xhr.responseText) as { error?: { message?: string } })?.error
+              ?.message ?? detail;
+        } catch {
+          /* ignore */
+        }
+        reject(new Error(detail));
+      }
+    };
+    xhr.onerror = () => reject(new Error('Network error during upload'));
+    xhr.send(form);
+  });
+}
