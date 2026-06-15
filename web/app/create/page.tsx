@@ -365,16 +365,30 @@ export default function CreateWizard() {
           {step === 2 && (
             <div className="grid gap-4">
               <Label>Photos (optional)</Label>
-              <input
-                type="file"
-                accept={ACCEPT_ATTR}
-                multiple
-                onChange={(e) => handleFiles(e.target.files)}
-                disabled={pending.some((u) => !u.error)}
-              />
-              <p className="text-xs text-neutral-500">
-                {ACCEPTED_LABEL} · up to {MAX_MB}MB each. Add 3–6 photos for the best look.
-              </p>
+              <label
+                className={`flex w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-neutral-300 px-4 py-8 text-center transition hover:border-neutral-500 hover:bg-neutral-50 ${
+                  pending.some((u) => !u.error) ? 'pointer-events-none opacity-50' : ''
+                }`}
+              >
+                <span className="text-3xl leading-none text-neutral-400">＋</span>
+                <span className="text-sm font-medium">
+                  {photos.length > 0 ? 'Add more photos' : 'Click to upload photos'}
+                </span>
+                <span className="text-xs text-neutral-500">
+                  {ACCEPTED_LABEL} · up to {MAX_MB}MB each
+                  {photos.length > 0 ? ` · ${photos.length} added` : ''}
+                </span>
+                <input
+                  type="file"
+                  accept={ACCEPT_ATTR}
+                  multiple
+                  className="hidden"
+                  onChange={(e) => {
+                    handleFiles(e.target.files);
+                    e.target.value = ''; // reset so you can add more (even the same file) again
+                  }}
+                />
+              </label>
 
               {/* In-progress / failed uploads */}
               {pending.length > 0 && (
