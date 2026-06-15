@@ -2,7 +2,7 @@
   "name": "ai-portfolio-generator",
   "version": "0.0.0",
   "private": true,
-  "workspaces": ["api", "web", "shared"],
+  "workspaces": ["api", "web", "packages/*"]
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
