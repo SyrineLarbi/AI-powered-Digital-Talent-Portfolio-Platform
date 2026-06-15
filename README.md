@@ -52,6 +52,7 @@ It is the single source of truth for product, architecture, and build decisions.
 | 15 | [Design System](./15-design-system.md) | Black & white theme spec, tokens, components |
 
 ---
+Demo Link : https://ai-powered-digital-talent-portfolio-platform-kfp0z1cx5.vercel.app/
 
 ## 🚀 The core flow (MVP)
 
