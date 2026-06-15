@@ -2,7 +2,7 @@
   "name": "ai-portfolio-generator",
   "version": "0.0.0",
   "private": true,
-  "workspaces": ["api", "web", "packages/*"]
+  "workspaces": ["api", "web", "packages/*"],
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
@@ -21,5 +21,6 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1"
   },
- "packageManager": "npm@10.9.4",
+  "packageManager": "npm@10.9.4",
   "engines": { "node": ">=20" }
+}
