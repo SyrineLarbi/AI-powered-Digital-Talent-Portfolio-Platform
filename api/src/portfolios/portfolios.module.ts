@@ -51,6 +51,12 @@ export class UpdatePortfolioDto {
   @IsOptional() @IsString() biography?: string;
   @IsOptional() skills?: string[];
   @IsOptional() @IsString() brandSummary?: string;
+  // portfolio display fields (French template)
+  @IsOptional() @IsString() tagline?: string;
+  @IsOptional() @IsString() availabilityText?: string;
+  @IsOptional() @IsString() availabilityDate?: string;
+  @IsOptional() @IsString() resumeUrl?: string;
+  @IsOptional() @IsString() addressText?: string;
   // privacy
   @IsOptional() @IsBoolean() showPhone?: boolean;
   @IsOptional() @IsBoolean() showDob?: boolean;
@@ -79,11 +85,15 @@ export class PortfoliosService {
   }
 
   async getOwned(userId: string, id: string) {
+    // Admin mode (DISABLE_AUTH): operate on any portfolio, not just the caller's.
+    const where = process.env.DISABLE_AUTH === 'true' ? { id } : { id, userId };
     const p = await this.prisma.portfolio.findFirst({
-      where: { id, userId },
+      where,
       include: {
         photos: { orderBy: { sortOrder: 'asc' } },
         experiences: { orderBy: { sortOrder: 'asc' } },
+        pricing: { orderBy: { sortOrder: 'asc' } },
+        projects: { orderBy: { sortOrder: 'asc' } },
       },
     });
     if (!p) throw new ForbiddenException();
