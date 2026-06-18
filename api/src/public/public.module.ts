@@ -18,6 +18,8 @@ export class PublicService {
       include: {
         photos: { orderBy: { sortOrder: 'asc' } },
         experiences: { orderBy: { sortOrder: 'asc' } },
+        pricing: { orderBy: { sortOrder: 'asc' } },
+        projects: { orderBy: { sortOrder: 'asc' } },
       },
     });
     if (!p) throw new NotFoundException();
@@ -26,16 +28,35 @@ export class PublicService {
       fullName: p.fullName,
       profession: p.profession,
       location: p.location,
+      tagline: p.tagline,
       headline: p.headline,
       biography: p.biography,
       skills: p.skills,
       brandSummary: p.brandSummary,
+      availabilityText: p.availabilityText,
+      availabilityDate: p.availabilityDate,
+      resumeUrl: p.resumeUrl,
+      addressText: p.addressText,
       photos: p.photos.map((ph) => ({ url: ph.url, isCover: ph.isCover })),
       experiences: p.experiences.map((e) => ({
         type: e.type,
         title: e.title,
         role: e.role,
         year: e.year,
+      })),
+      pricing: p.pricing.map((pi) => ({
+        category: pi.category,
+        label: pi.label,
+        priceMin: pi.priceMin,
+        priceMax: pi.priceMax,
+        currency: pi.currency,
+      })),
+      projects: p.projects.map((pr) => ({
+        title: pr.title,
+        category: pr.category,
+        description: pr.description,
+        imageUrl: pr.imageUrl,
+        featured: pr.featured,
       })),
       socials: {
         instagram: p.instagramUrl,
