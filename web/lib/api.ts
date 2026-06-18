@@ -46,7 +46,36 @@ export interface UploadSig {
   cloudName: string;
 }
 
+export interface AdminRow {
+  id: string;
+  fullName: string;
+  profession: string;
+  location: string;
+  status: string;
+  slug: string | null;
+  hasGenerated: boolean;
+}
+
+export interface PricingInput {
+  category: string;
+  label: string;
+  priceMin?: number;
+  priceMax?: number;
+  currency?: string;
+}
+
+export interface ProjectInput {
+  title: string;
+  category?: string;
+  description?: string;
+  imageUrl?: string;
+  featured?: boolean;
+}
+
 export const api = {
+  // Admin dashboard
+  listPortfolios: () => request<AdminRow[]>('/admin/portfolios'),
+
   ensurePortfolio: () => request<{ id: string }>('/portfolios', { method: 'POST' }),
   getPortfolio: (id: string) => request<Record<string, unknown>>(`/portfolios/${id}`),
   updatePortfolio: (id: string, body: Record<string, unknown>) =>
@@ -55,6 +84,16 @@ export const api = {
     request(`/portfolios/${id}/experiences`, {
       method: 'PUT',
       body: JSON.stringify({ experiences }),
+    }),
+  setPricing: (id: string, pricing: PricingInput[]) =>
+    request(`/portfolios/${id}/pricing`, {
+      method: 'PUT',
+      body: JSON.stringify({ pricing }),
+    }),
+  setProjects: (id: string, projects: ProjectInput[]) =>
+    request(`/portfolios/${id}/projects`, {
+      method: 'PUT',
+      body: JSON.stringify({ projects }),
     }),
   uploadSignature: () => request<UploadSig>('/uploads/signature'),
   registerPhoto: (id: string, body: Record<string, unknown>) =>
