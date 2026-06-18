@@ -8,6 +8,8 @@ import { PhotosModule } from './photos/photos.module';
 import { ExperiencesModule } from './experiences/experiences.module';
 import { PublicModule } from './public/public.module';
 import { GenerationModule } from './generation/generation.module';
+import { AdminModule } from './admin/admin.module';
+import { CatalogModule } from './catalog/catalog.module';
 
 @Module({
   imports: [
@@ -18,6 +20,8 @@ import { GenerationModule } from './generation/generation.module';
     ExperiencesModule,
     PublicModule,
     GenerationModule,
+    AdminModule,
+    CatalogModule,
   ],
   controllers: [AppController],
   providers: [AppService],
