@@ -21,3 +21,21 @@ export const ExperienceEntry = z.object({
   note: z.string().optional(),
 });
 export type ExperienceEntry = z.infer<typeof ExperienceEntry>;
+
+export const PricingItemEntry = z.object({
+  category: z.string(),
+  label: z.string(),
+  priceMin: z.number().int().min(0).optional(),
+  priceMax: z.number().int().min(0).optional(),
+  currency: z.string().default('TND'),
+});
+export type PricingItemEntry = z.infer<typeof PricingItemEntry>;
+
+export const ProjectEntry = z.object({
+  title: z.string(),
+  category: z.string().optional(),
+  description: z.string().optional(),
+  imageUrl: z.string().optional(),
+  featured: z.boolean().default(false),
+});
+export type ProjectEntry = z.infer<typeof ProjectEntry>;
