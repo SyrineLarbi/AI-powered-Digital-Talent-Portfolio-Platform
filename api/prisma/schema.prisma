@@ -36,6 +36,13 @@ model Portfolio {
   skills       Json     @default("[]") // AI array of strings, editable
   brandSummary String?  @db.Text
 
+  // Display fields used by the portfolio page (French template)
+  tagline          String? // hero subtitle
+  availabilityText String? // "Besoin d'assistance ? Réservez maintenant"
+  availabilityDate String? // e.g. "1er janvier 2026"
+  resumeUrl        String? @db.VarChar(512)
+  addressText      String? @db.Text
+
   slug      String?  @unique // null until published
   status    String   @default("draft") // draft|generating|ready|published
   showPhone Boolean  @default(false)
@@ -47,9 +54,41 @@ model Portfolio {
 
   photos      Photo[]
   experiences Experience[]
+  pricing     PricingItem[]
+  projects    Project[]
   jobs        GenerationJob[]
 
   @@index([status])
+}
+
+model PricingItem {
+  id          String    @id @default(uuid())
+  portfolioId String
+  category    String // e.g. reels | live | events | other
+  label       String // display label, e.g. "Reels Instagram"
+  priceMin    Int?
+  priceMax    Int?
+  currency    String    @default("TND")
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  portfolio   Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+
+  @@index([portfolioId, sortOrder])
+}
+
+model Project {
+  id          String    @id @default(uuid())
+  portfolioId String
+  title       String
+  category    String?
+  description String?   @db.Text
+  imageUrl    String?   @db.VarChar(512)
+  featured    Boolean   @default(false)
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  portfolio   Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+
+  @@index([portfolioId, sortOrder])
 }
 
 model Photo {
