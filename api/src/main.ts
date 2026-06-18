@@ -12,8 +12,24 @@ async function bootstrap() {
       transform: true,
     }),
   );
+  // Allow: localhost, any explicit WEB_ORIGIN entries (comma-separated),
+  // and every Vercel deployment URL (production + preview *.vercel.app).
+  const allowed = (process.env.WEB_ORIGIN ?? 'http://localhost:3000')
+    .split(',')
+    .map((o) => o.trim().replace(/\/$/, ''))
+    .filter(Boolean);
   app.enableCors({
-    origin: process.env.WEB_ORIGIN ?? 'http://localhost:3000',
+    origin: (origin, callback) => {
+      if (
+        !origin || // same-origin / curl / server-to-server
+        allowed.includes(origin) ||
+        /^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin)
+      ) {
+        callback(null, true);
+      } else {
+        callback(new Error(`Origin not allowed by CORS: ${origin}`));
+      }
+    },
     credentials: true,
   });
   await app.listen(process.env.PORT ?? 4000);
