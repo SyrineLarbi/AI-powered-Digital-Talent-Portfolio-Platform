@@ -2,6 +2,7 @@
 
 import { use, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -36,6 +37,7 @@ type Photo = { id: string; url: string; isCover: boolean };
 
 export default function GeneratePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const router = useRouter();
 
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -215,10 +217,10 @@ export default function GeneratePage({ params }: { params: Promise<{ id: string 
       await saveAll();
       const res = await api.generate(id, 'all');
       setResult(res.output);
-      toast.success('Portfolio généré ✨');
+      toast.success('Portfolio généré ✨ Redirection…');
+      router.push(`/portfolio/${id}`);
     } catch (e) {
       toast.error(`Génération échouée : ${(e as Error).message}`);
-    } finally {
       setBusy(false);
     }
   }
